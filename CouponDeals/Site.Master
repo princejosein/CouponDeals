@@ -1,0 +1,281 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="CouponDeals.Site" %>
+
+<!DOCTYPE html>
+
+<html>
+<head runat="server">
+    <title>Coupon Deals</title>
+    <link href="Content/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+    <link href="Content/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="Content/toastr.min.css" />
+    <link href="Content/styles.css" rel="stylesheet" type="text/css" />
+    
+    <script src="Scripts/jquery-3.5.1.min.js" ></script>
+    <script src="Scripts/jquery-ui-1.12.1.min.js" ></script>
+    <script src="Scripts/bootstrap.min.js" ></script>
+    <script src="Scripts/faw.js" ></script>    
+    <script type="text/javascript" src="Scripts/toastr.min.js"></script>
+    <script src="Scripts/main.js" ></script>    
+    
+    <script src="Scripts/sweetalert.min.js"></script>
+    <script>
+        function errorToastr(title, msg) {
+            toastr.error(title, msg)
+        }
+        function successToastr(title, msg) {
+            toastr.success(title, msg)
+        }
+        function swalAlert(title, text, icon, buttons = false, dangerMode = true, reload = false) {
+            swal({
+        title: title,
+        text: text,
+        icon: icon,
+        buttons: buttons,
+        dangerMode: dangerMode
+        })
+        }
+        function ShowCoupon(CouponID) {
+            //HidCouponID
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "Default.aspx/ShowCoupon",
+                data: "{'CouponID':'" + CouponID + "'}",
+                dataType: "json",
+                success: function (data) {
+                    if (typeof data.d != "undefined") {                        
+                        //var res = JSON.parse(data.d);
+                        if (data.d.CODE != undefined) {
+                            $('#CouponModal').modal('show')
+                            $('#CouponModal').on('shown.bs.modal', function (event) {
+                                var modal = $(this)
+                                modal.find('.code-title').text(data.d.CODE_TITLE)
+                                modal.find('.modal-image').attr("src", data.d.CODE_IMG);
+                                modal.find('.copy-text').text(
+                                    "Copy and paste this code at "
+                                )
+                                modal.find('.copy-text').append(
+                                    '<a id="copy-link" href="" target="_blank">' + data.d.COMPANY_NAME + '</a>');
+                                var alink = document.getElementById("copy-link");
+                                alink.setAttribute("href", "http://" + data.d.COMPANY_WEBSITE);
+                                modal.find('.code').text(data.d.CODE)
+                                modal.find('.expires').text("Expires " + data.d.CODE_EXP);
+                                modal.find('.code-desc').text(data.d.CODE_DESC);
+                                modal.find('#coupon_id').val(CouponID);
+                            })
+                            
+                        }
+                        $('#CouponModal').on('hidden.bs.modal', function (e) {
+                            $(this).removeData();
+                        });
+                    } else {
+                        if (window.console) {
+                            console.log('Unknown error,');
+                        }
+                    }
+                },
+                error: function (result) {
+                    //
+                }
+            })
+        }
+        function Favourites(CouponID) {
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "Default.aspx/Favourites",
+                data: "{'CouponID':'" + CouponID + "'}",
+                dataType: "json",
+                success: function (data) {
+                    if (typeof data.d != "undefined") {
+                        if (data.d.SUCCESS != undefined) {
+                            if (data.d.SUCCESS == "1") {
+                                swalAlert(
+                                    "Success", data.d.MESSAGE,
+                                    "success", false, false
+                                );
+                                $(".fav-btn-" + CouponID).html("Remove <i style='font-size: 18px' class='fas fa-heart'></i>")
+                            } else if (data.d.SUCCESS == "2") {
+                                swalAlert(
+                                    "Success", data.d.MESSAGE,
+                                    "info", false, true
+                                );
+                                $(".fav-btn-" + CouponID).html("Add to Favourites  <i style='font-size: 18px' class='far fa-heart'></i>");
+                            } else if (data.d.SUCCESS == "3") {
+                                swalAlert(
+                                    "Error", data.d.MESSAGE,
+                                    "warning", true, false
+                                )
+                            } else {
+                                swalAlert(
+                                    "Error", data.d.MESSAGE,
+                                    "warning", true, false
+                                )
+                            }
+                            
+                        }
+                    } else {
+                        if (window.console) {
+                            console.log('Unknown error,');
+                        }
+                    }
+                },
+                error: function (result) {
+                    //
+                }
+            })
+        }
+        function AddToCart() {
+            let CouponID = $('#coupon_id').val();
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "Default.aspx/AddToCart",
+                data: "{'CouponID':'" + CouponID + "'}",
+                dataType: "json",
+                success: function (data) {
+                    if (typeof data.d != "undefined") {
+                        if (data.d.SUCCESS != undefined) {
+                            if (data.d.SUCCESS == "1") {
+                                swalAlert(
+                                    "Success", data.d.MESSAGE,
+                                    "success", false, false
+                                );
+                                $(".badge-light").html(data.d.Count);
+                            } else {
+                                swalAlert(
+                                    "Error", data.d.MESSAGE,
+                                    "error", true, false
+                                )
+                            }
+
+                        }
+                    } else {
+                        if (window.console) {
+                            console.log('Unknown error,');
+                        }
+                    }
+                },
+                error: function (result) {
+                    //
+                }
+            })
+        }
+    </script>
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server"></asp:ScriptManager>
+         <%--Menu--%>
+        <nav class="header navbar navbar-expand-lg sticky-top navbar-dark">  
+        <a class="navbar-brand" href="Default.aspx">
+            
+            <asp:Image ID="ImgLogo" runat="server" ImageUrl="~/Images/logo.png" width="150"/>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="navbar-collapse collapse w-100 order-3 dual-collapse2" id="navbarNav">
+            <asp:Menu ID="MainMenu" runat="server" Orientation="Horizontal" class="navbar-nav ml-auto">
+                <Items>
+                    <asp:MenuItem NavigateUrl="~/Default.aspx" Text="Home" Value="Home"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/CategoryList.aspx" Text="Categories" Value="Categories"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/CompanyList.aspx" Text="Companies" Value="Companies"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/UserList.aspx" Text="Users" Value="Users"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/CouponList.aspx" Text="Coupons" Value="Coupons"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/Favourites.aspx" Text="Favourites" Value="Favourites"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/Contact.aspx" Text="Contact" Value="Contact"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/Register.aspx" Text="Register" Value="Register"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/Login.aspx" Text="Login" Value="Login"></asp:MenuItem>
+                    <asp:MenuItem NavigateUrl="~/UserLogins.aspx" Text="User Logins" Value="User Logins"></asp:MenuItem>
+                </Items>
+            </asp:Menu>
+            <div class="cart">
+                <a class="btn btn-primary" href="Cart.aspx">
+                    <i class="fa fa-shopping-cart"></i> Cart
+                    <span class="badge badge-light" runat="server" id="CartCountID">0</span>
+                </a>
+            </div>
+            <asp:Button ID="BtnLogOut" runat="server" Visible="true" Text="Logout" CssClass="btn btn-logout m-2" OnClick="BtnLogOut_Click"  />
+        </div>
+            
+            
+        </nav>
+
+        
+        <%--Inner page title--%>
+        <div class="home_search_part">
+<div class="container">
+<div class="row ">
+        <asp:ContentPlaceHolder ID="ContentPlaceHolder2" runat="server">  
+            
+        </asp:ContentPlaceHolder>
+    </div>
+    </div>
+            </div>
+
+        <%--Content area for inner pages--%>
+        <div class="content_part">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					 <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                     </asp:ContentPlaceHolder>
+				</div>
+			</div>
+		</div>
+	    </div>
+
+        <%--Footer area--%>
+        <div class="footer_part">
+        <div class="container">
+	        <div class="row">
+		        <div class="col-md-3 ">
+                    <h5>About</h5>
+                    <p>
+                        We are a young company always looking to create good ideas
+                        to help the people.
+                    </p>
+                </div>
+		        <div class="col-md-6 text-center">
+			        <h5>Discover</h5>
+			        <ul class="list-unstyled ">
+				        <li>
+                            <a class="icon-link" href="https://www.facebook.com/" target="_blank"><i class="fab fa-facebook"></i></a>
+                            <a class="icon-link" href="https://twitter.com/" target="_blank"><i class="fab fa-twitter"></i></a>
+                            <a class="icon-link" href="https://www.youtube.com/" target="_blank"><i class="fab fa-youtube"></i></a>
+                            <a class="icon-link" href="https://www.linkedin.com/" target="_blank"><i class="fab fa-linkedin"></i></a>
+
+				        </li>
+			        </ul>
+		        </div>
+		        <div class="col-md-3 ">
+			        <h5>Contact Us</h5>
+                    <p><i class="fas fa-home mr-3"></i>633 New North Road, NZ</p>
+                    <p><i class="fas fa-envelope mr-3"></i> princejose@gmail.com</p>
+                    <p><i class="fas fa-phone mr-3"></i> + 64 2040204050</p>
+                    <p><i class="fas fa-print mr-3"></i> + 64 2040204050</p>			        
+			    </div>
+	        </div>
+        </div>
+        </div>
+
+
+        <%--Copyright  area--%>
+        <%--<div class="copyright_part">
+		        <div class="container">
+        <div class="row p-5">
+        <div class="col-xs-12 col-sm-12 col-md-12 mt-2 mt-sm-2 text-center text-white">
+	
+	        <p class="h6">© All right Reversed.<a class="text-green ml-2" href="#" target="_blank">Job Street</a></p>
+        </div>
+        <hr>
+        </div>
+        </div>
+        </div>--%>
+
+    </form>
+</body>
+</html>
